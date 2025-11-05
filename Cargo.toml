@@ -1,0 +1,27 @@
+[package]
+name = "rgping"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0"
+clap = { version = "4.5", features = ["derive"] }
+crossterm = "0.27"
+ratatui = "0.26"
+
+tokio = { version = "1.39", features = ["rt-multi-thread", "macros", "process", "time", "signal", "sync"] }
+
+humantime = "2.1"
+
+[package.metadata.deb]
+maintainer = "Vladislav Ananyev <nexus.riot@gmail.com>"
+copyright = "2025, Vladislav Ananyev"
+license-file = ["LICENSE", "0"]
+extended-description = """\
+Rust gping implementation ;)
+"""
+assets = [
+  ["target/release/rgping", "/usr/bin/", "755"]
+]
+section = "utils"
+priority = "optional"
