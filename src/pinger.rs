@@ -1,4 +1,6 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
+#[cfg(not(target_os = "linux"))]
+use anyhow::anyhow;
 use std::process::Stdio;
 use tokio::{process::Command, time::{sleep, Duration}};
 
@@ -51,8 +53,7 @@ impl Pinger {
                 if let Some(idx) = line.find("time=") {
                     let rest = &line[idx + 5..];
                     let end = rest.find(' ').unwrap_or(rest.len());
-                    let val = &rest[..end];
-                    val.parse::<f64>().ok()
+                    rest[..end].parse::<f64>().ok()
                 } else {
                     None
                 }
@@ -68,19 +69,21 @@ impl Pinger {
 
     #[cfg(not(target_os = "linux"))]
     async fn ping_once(&mut self) -> Result<PingSample> {
-        Err(anyhow!("Non-Linux OS detected: adjust flags in pinger.rs (search for macOS note)."))
+        Err(anyhow!("Non-Linux OS: adjust flags in pinger.rs for macOS/Windows"))
     }
 
-    pub async fn run(mut self, mut tx: tokio::sync::mpsc::Sender<PingSample>) -> Result<()> {
+    pub async fn run(mut self, tx: tokio::sync::mpsc::Sender<PingSample>) -> Result<()> {
         loop {
             let start = tokio::time::Instant::now();
             let sample = self.ping_once().await.unwrap_or_else(|_| {
                 self.seq += 1;
                 PingSample { seq: self.seq, rtt_ms: None }
             });
+
             if tx.send(sample).await.is_err() {
                 break;
             }
+
             let elapsed = start.elapsed();
             if elapsed < self.cfg.interval {
                 sleep(self.cfg.interval - elapsed).await;
